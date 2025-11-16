@@ -1,6 +1,6 @@
 <script lang="ts">
     import { twMerge } from "tailwind-merge";
-	import { onMount, type Snippet } from "svelte";
+    import { onMount, type Snippet } from "svelte";
 
     let { children, className }: {children: Snippet, className: string} = $props();
 

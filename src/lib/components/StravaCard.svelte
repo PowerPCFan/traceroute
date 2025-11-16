@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { formatMinutes } from "$lib";
-	import ConvertableFormat from "./ConvertableFormat.svelte";
+    import { formatMinutes } from "$lib";
+    import ConvertableFormat from "./ConvertableFormat.svelte";
 
     let { type, maxSpeed, avgSpeed, time, started, distance, kilojoules, name }: 
         {type: "Run" | "Ride", maxSpeed: number, avgSpeed: number, time: number, started: string, distance: number, kilojoules: number, name: string}
