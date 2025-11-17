@@ -1,11 +1,11 @@
 import { exec } from 'node:child_process';
-import { readFile } from "node:fs/promises";
+// import { readFile } from "node:fs/promises";
 import net from "node:net"
-import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from './types';
+import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from '$lib/api-types';
 import { error } from '@sveltejs/kit';
-import { parse } from "csv-parse/sync";
-import { fileURLToPath } from 'node:url';
-import path from 'node:path';
+// import { parse } from "csv-parse/sync";
+// import { fileURLToPath } from 'node:url';
+// import path from 'node:path';
 import airports from "$lib/airports.json";
 import worldCities from "$lib/cities/worldcities.json";
 import Database from "better-sqlite3";
