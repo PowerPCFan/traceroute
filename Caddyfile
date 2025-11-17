@@ -1,9 +1,6 @@
 :8080 {
     reverse_proxy localhost:3000
 
-    @api path /api/*
-    rate_limit @api 10r/m
-
     header {
         X-Content-Type-Options nosniff
         X-Frame-Options DENY
