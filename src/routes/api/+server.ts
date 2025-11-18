@@ -1,4 +1,5 @@
-import { exec } from 'node:child_process';
+// import { exec } from 'node:child_process';
+import { execFile } from 'node:child_process';
 // import { readFile } from "node:fs/promises";
 import net from "node:net"
 import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from '$lib/api-types';
@@ -166,33 +167,39 @@ async function getLocationFromIp(ip: string): Promise<[number, number]> {
         if(lat && lng) {
             database.prepare("INSERT INTO ips (ip, lat, lng) VALUES (?, ?, ?)").run(ip, lat, lng);
         }
-        
+
         return [lat, lng];
     }
 }
 
 export async function GET({ request }) {
-    const ip = request.headers.get("X-Real-IP");
+    const ip = request.headers.get("CF-Connecting-IP");
+
     if(!net.isIP(ip!)) {
-        console.log("Invalid ip! Headers: ");
+        console.log("Invalid IP! Headers: ");
         console.log(request.headers);
         return error(422);
     }
 
-
     return new Promise(async (resolve) => {
-        exec(`traceroute -w 0.5 -q 1 -m 25 ${ip}`, async (err, stdout, stderr) => {
+        // exec(`traceroute -w 0.5 -q 1 -m 25 ${ip}`, async (err, stdout, stderr) => {
+        execFile("traceroute", ["-w", "0.5", "-q", "1", "-m", "25", (ip ?? '127.0.0.1')], async (err, stdout, _stderr) => {
             if (err) {
-                resolve(new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } }));
+                resolve(new Response(
+                    JSON.stringify({ error: err.message }), {
+                        status: 500,
+                        headers: { "Content-Type": "application/json" }
+                    }
+                ));
+
                 return;
             }
 
             const output = await parseOutput(stdout.trim().split("\n"));
+
             resolve(new Response(JSON.stringify(output), {
                 headers: { "Content-Type": "application/json" }
             }));
         });
     });
-
-
 }
