@@ -1,7 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import type { ProbeResult } from "$lib/api-types";
-    // @ts-ignore
     import L, { LatLng } from "leaflet";
     import Loader from "$lib/components/Loader.svelte";
     import { slide } from "svelte/transition";
@@ -69,8 +68,7 @@
                 polyline.addTo(map!);
             }
 
-            // @ts-ignore
-            L.marker([lastData.domainAnalysis.coordinates[0], lastData.domainAnalysis.coordinates[1]]).addTo(map!).bindPopup(`Hop #${lastData.index}: ${lastData.domain} (${lastData.ip}) ${lastData.delay}ms`);
+            L.marker([lastData.domainAnalysis!.coordinates[0], lastData.domainAnalysis!.coordinates[1]]).addTo(map!).bindPopup(`Hop #${lastData.index}: ${lastData.domain} (${lastData.ip}) ${lastData.delay}ms`);
     }
 </script>
 

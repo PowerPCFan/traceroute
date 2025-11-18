@@ -38,7 +38,7 @@ export interface AirportCSV {
     name: string,
     latitude: string,
     longitude: string,
-    elevation: string,
+    elevation: number | string,
     url: string,
     time_zone: string,
     city_code: string,

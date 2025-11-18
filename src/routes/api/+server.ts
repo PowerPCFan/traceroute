@@ -53,7 +53,6 @@ const database = new Database('ips.db');
 const rawCityData: CSVCities[] = worldCities;
 const cityData: CityMap = Object.fromEntries(rawCityData.map(city => [city.city_ascii.toLowerCase(), {...city}]));
 
-// @ts-ignore
 const rawAirportData: AirportCSV[] = airports
 const airportData: AirportMap = Object.fromEntries(rawAirportData.map(airport => [airport.code.toLowerCase(), {...airport}]));
 
@@ -117,7 +116,6 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
                         console.log(cityData[match.toLowerCase().trim()]);
                         result.domainAnalysis = {
                             cityOrAirport: match.toUpperCase(),
-                            // @ts-ignore
                             coordinates: [Number(data.latitude), Number(data.longitude)]
                         }
                         break;
@@ -152,7 +150,7 @@ async function getLocationFromIp(ip: string): Promise<[number, number]> {
         )
     `)
 
-    // @ts-expect-error
+    // @ts-expect-error TS2322
     const result: {lat: number, lng: number} | undefined = database.prepare("SELECT * FROM ips WHERE ip=?").get(ip);
 
     if(result) {
@@ -195,7 +193,8 @@ export async function GET({ request }) {
                 return;
             }
 
-            const output = await parseOutput(stdout.trim().split("\n"));
+            // const output = await parseOutput(stdout.trim().split("\n"));
+            const output = await parseOutput(TEST_TRACEROUTE.trim().split("\n"));
 
             resolve(new Response(JSON.stringify(output), {
                 headers: { "Content-Type": "application/json" }
