@@ -11,6 +11,8 @@ import airports from "$lib/airports.json";
 import worldCities from "$lib/cities/worldcities.json";
 import Database from "better-sqlite3";
 
+const isDev = process.env.NODE_ENV === 'development';
+
 const KNOWN_REPLACEMENTS = new Map(Object.entries({
     "hls": "hel",
     "sto": "arn",
@@ -171,6 +173,17 @@ async function getLocationFromIp(ip: string): Promise<[number, number]> {
 }
 
 export async function GET({ request }) {
+    if (isDev) {
+        // return the test traceroute data since there's no user IP in dev mode
+        return new Promise(async (resolve) => {
+            const output = await parseOutput(TEST_TRACEROUTE.trim().split("\n"));
+
+            resolve(new Response(JSON.stringify(output), {
+                headers: { "Content-Type": "application/json" }
+            }));
+        });
+    }
+
     const ip = request.headers.get("cf-connecting-ip");
 
     if(!net.isIP(ip!)) {
@@ -193,8 +206,7 @@ export async function GET({ request }) {
                 return;
             }
 
-            // const output = await parseOutput(stdout.trim().split("\n"));
-            const output = await parseOutput(TEST_TRACEROUTE.trim().split("\n"));
+            const output = await parseOutput(stdout.trim().split("\n"));
 
             resolve(new Response(JSON.stringify(output), {
                 headers: { "Content-Type": "application/json" }

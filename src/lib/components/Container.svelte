@@ -9,7 +9,7 @@
 <style>
     .element {
         width: 90%;
-        background-color: #18181b;
+        background-color: #212121;
         margin-left: auto;
         margin-right: auto;
         border-radius: 1rem;

@@ -38,7 +38,7 @@
                 ip: "Unknown",
                 domainAnalysis: {
                     cityOrAirport: "",
-                    coordinates: [42.4667, -70.9493]  // not my actual coordinates obviously lol
+                    coordinates: [42.3584, -71.0598]  // boston, ma coordinates (dont wanna leak my house)
                 }
             };
             for(let data of trace) {
@@ -73,10 +73,11 @@
 </script>
 
 <svelte:head>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" onload={_ => mapLoad()}></script>
 </svelte:head>
 
-<h1>Traceroute Checker</h1>
+<h1>Traceroute</h1>
 <p>Does a traceroute to your IP and parses locations from domains found on the route (e.g sto03 -&gt; Stockholm). Click the pins to see a popup with information.</p>
 <p class="italic">Note: The locations shown on the map may be inaccurate.</p>
 
@@ -87,4 +88,4 @@
     </div>
 {/if}
 
-<div class:opacity-0={loading} class="aspect-video" id="map"></div>
+<div class:opacity-0={loading} id="map"></div>

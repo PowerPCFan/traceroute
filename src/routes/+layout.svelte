@@ -5,79 +5,39 @@
 </script>
 
 <svelte:head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-
     <style>
-        code > span {
-            padding-left: 5px;
-        }
-
-        pre {
-            background-color: #121212;
-            border-radius: 1rem;
-            padding: 2px;
-        }
-
-        * {
+        *, *::before, *::after {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             color: white;
-        }
-
-        h1, h2, h3, p, a {
-            filter: drop-shadow(0px 2px 12px rgba(0, 0, 0, 0.103));
+            box-sizing: border-box;
         }
 
         h1 {
-            font-size: 3em;
-            font-weight: 650;
-            line-height: 46px;
-            margin-bottom: 12px;
+            font-size: 3rem;
+            font-weight: 700;
+            margin-block: 0.75rem;
         }
 
         h2 {
-            font-size: 2em;
+            font-size: 2rem;
             font-weight: 600;
-            line-height: 30px;
-            margin-bottom: 6px;
-            margin-top: 6px;
-        }
-
-        h3 {
-            font-size: 1.2em;
-            font-weight: 550;
-
-        }
-
-        h1, h2 {
-            font-family: "JetBrains-mono", monospace;
-            text-transform: lowercase;
-            background-color: #121212;
-            height: fit-content;
-            width: fit-content;
-
-        }
-
-        a {
-            border-bottom: 0px solid white;
-            padding-bottom: 2px;
+            margin-block: 0.5rem;
         }
 
         p {
-            font-size: 1.1em;
+            font-size: 1.1rem;
         }
 
-        a:hover {
-            animation-duration: 2s;
-            border-bottom-width: 2px;
-            padding-bottom: 0px;
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
 
         body {
+            height: auto;
             overflow-x: hidden;
-        }
-
-        body {
-            background-color: #121212;
+            background-color: #111111;
         }
 
         .leaflet-control-zoom-in,
@@ -85,8 +45,14 @@
             filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
 
-        .leaflet-control-zoom-in span, .leaflet-control-zoom-out span, .leaflet-popup-content  {
+        .leaflet-control-zoom-in span,
+        .leaflet-control-zoom-out span,
+        .leaflet-popup-content {
             color: black;
+        }
+
+        #map {
+            aspect-ratio: 16 / 9;
         }
     </style>
 </svelte:head>
