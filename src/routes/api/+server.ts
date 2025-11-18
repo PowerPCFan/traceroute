@@ -173,7 +173,7 @@ async function getLocationFromIp(ip: string): Promise<[number, number]> {
 }
 
 export async function GET({ request }) {
-    const ip = request.headers.get("CF-Connecting-IP");
+    const ip = request.headers.get("cf-connecting-ip");
 
     if(!net.isIP(ip!)) {
         console.log("Invalid IP! Headers: ");
