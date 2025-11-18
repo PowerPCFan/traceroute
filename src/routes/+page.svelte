@@ -34,12 +34,12 @@
          console.log("Processing trace data");
             let lastData: ProbeResult | undefined = {
                 delay: 0,
-                domain: "Cloudflare server",
+                domain: "Origin Server",
                 index: 0,
-                ip: "2a09:bac6:d75c:2dc3::48f:9",
+                ip: "Unknown",
                 domainAnalysis: {
                     cityOrAirport: "",
-                    coordinates: [42.4667, -70.9493]
+                    coordinates: [42.4667, -70.9493]  // not my actual coordinates obviously lol
                 }
             };
             for(let data of trace) {
