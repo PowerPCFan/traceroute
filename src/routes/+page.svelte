@@ -18,7 +18,7 @@
     });
 
     function mapLoad() {
-        map = L.map("map").setView([62.25, 25.57], 3);
+        map = L.map("map").setView([42.35, -71.05], 3);
         L.tileLayer("https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", {
             maxZoom: 19,
             attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
