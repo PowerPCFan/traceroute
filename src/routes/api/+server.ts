@@ -223,7 +223,7 @@
 
 import { execFile } from 'node:child_process';
 import net from "node:net"
-import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from './types';
+import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from '$lib/api-types';
 import { error } from '@sveltejs/kit';
 import airports from "$lib/airports.json";
 import worldCities from "$lib/cities/worldcities.json";
