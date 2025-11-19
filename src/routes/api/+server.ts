@@ -1,12 +1,14 @@
-// import { exec } from 'node:child_process';
+/**
+ * Returns one of these HTTP codes:
+ * - 200: OK, with traceroute data
+ * - 422: Unprocessable Entity, invalid IP address
+ * - 500: Internal Server Error, something went wrong running traceroute
+*/
+
 import { execFile } from 'node:child_process';
-// import { readFile } from "node:fs/promises";
 import net from "node:net"
 import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from '$lib/api-types';
 import { error } from '@sveltejs/kit';
-// import { parse } from "csv-parse/sync";
-// import { fileURLToPath } from 'node:url';
-// import path from 'node:path';
 import airports from "$lib/airports.json";
 import worldCities from "$lib/cities/worldcities.json";
 import Database from "better-sqlite3";
@@ -63,11 +65,12 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
     const domainLocationRegex = /[a-z]{3}/g;
     let results: ProbeResult[] = [];
 
-    for(const line of lines) {
+    for (const line of lines) {
         console.log();
         console.log(line);
+
         const parts = line.match(/\S+/g) || [];
-        if(parts.length != 5) {
+        if (parts.length != 5) {
             console.log(`Skipping line ${parts[0]} insufficent data ${parts.length} ${line}`);
             continue;
         }
@@ -76,7 +79,7 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
         const domain = parts[1];
         const ip = parts[2].replace("(", "").replace(")", "");
         const delay = parts[3];
-        
+
         let result: ProbeResult = {
             index: Number(index),
             delay: Number(delay),
@@ -84,10 +87,10 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
             ip: ip,
             domainAnalysis: undefined
         }
-        
-        for(let city of rawCityData) {
-            if(domain.toLowerCase().includes(city.city.toLocaleLowerCase()) && city.city.length > 5) {
-                if(Number(city.population) > (result.domainAnalysis?.population || 0)) {
+
+        for (let city of rawCityData) {
+            if (domain.toLowerCase().includes(city.city.toLocaleLowerCase()) && city.city.length > 5) {
+                if (Number(city.population) > (result.domainAnalysis?.population || 0)) {
                     console.log("Matched city " + city.city);
                     result.domainAnalysis = {
                         cityOrAirport: city.city.toLocaleLowerCase(),
@@ -98,23 +101,24 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
             }
         } 
 
-        if(!result.domainAnalysis)  {
+        if (!result.domainAnalysis) {
             const matches = domain.match(domainLocationRegex);
-            if(matches) {
-                for(let match of matches) {
+            if (matches) {
+                for (let match of matches) {
                     const replacement = KNOWN_REPLACEMENTS.get(match.toLocaleLowerCase().trim())
                     console.log(match);
-                    if(replacement) {
+
+                    if (replacement) {
                         match = replacement;
                     }
 
-                    console.log("Checking match " + match);
+                    console.log(`Checking match '${match}'...`);
 
                     const data = airportData[match.toLocaleLowerCase()];
-                    if(!data || !data.url || !data.icao || Number(cityData[data.city.toLocaleLowerCase().trim()]?.population ?? 0) < 25000) {
+                    if (!data || !data.url || !data.icao || Number(cityData[data.city.toLocaleLowerCase().trim()]?.population ?? 0) < 25000) {
                         console.log("Skipping airport because URL isnt there");
                     } else {
-                        console.log("Which was succesfull");
+                        console.log("Match was succesful!");
                         console.log(cityData[match.toLowerCase().trim()]);
                         result.domainAnalysis = {
                             cityOrAirport: match.toUpperCase(),
@@ -126,16 +130,18 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
             }
         }
 
-       if(!result.domainAnalysis) {
+       if (!result.domainAnalysis) {
             const geolocation = await getLocationFromIp(ip);
-            if(geolocation[0]) {
+
+            if (geolocation[0]) {
                 result.domainAnalysis = {
                     cityOrAirport: "unknown",
                     coordinates: geolocation,
                     population: 0
                 }
             }
-       }
+        }
+
         results.push(result);
     }
 

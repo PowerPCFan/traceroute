@@ -50,10 +50,6 @@
         .leaflet-popup-content {
             color: black;
         }
-
-        #map {
-            aspect-ratio: 16 / 9;
-        }
     </style>
 </svelte:head>
 

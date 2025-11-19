@@ -5,9 +5,10 @@
     import Loader from "$lib/components/Loader.svelte";
     import { slide } from "svelte/transition";
 
-    let traceData: ProbeResult[] | undefined = $state();
-    let map: L.Map | undefined = undefined;
+    let traceData: ProbeResult[] | undefined = $state(undefined);
+    let map: L.Map | undefined = $state(undefined);
     let loading = $state(true);
+    let error = $state(false);
 
     onMount(async () => {
         const req = await fetch("/api");
@@ -24,7 +25,7 @@
             attribution: '&copy; <a href="https://carto.com/">CARTO</a>'
         }).addTo(map);
 
-        if(traceData) {
+        if (traceData) {
             addTraceroutes(traceData);
         }
     }
@@ -41,11 +42,11 @@
                     coordinates: [42.3584, -71.0598]  // boston, ma coordinates (dont wanna leak my house)
                 }
             };
-            for(let data of trace) {
-                if(!data.domainAnalysis) {
+            for (let data of trace) {
+                if (!data.domainAnalysis) {
                     continue;
                 }
-                if(!lastData || !lastData.domainAnalysis) {
+                if (!lastData || !lastData.domainAnalysis) {
                     lastData = data;
                     continue;
                 }
@@ -82,10 +83,27 @@
 <p class="italic">Note: The locations shown on the map may be inaccurate.</p>
 
 {#if loading}
-    <div class="flex items-center" transition:slide>
+    <div style="display: flex; align-items: center" transition:slide>
         <Loader></Loader>
         <p>Tracing route, this might take a few seconds</p>
     </div>
 {/if}
 
-<div class:opacity-0={loading} id="map"></div>
+{#if error}
+    <p style="color: red;">An unknown error occurred.</p>
+{/if}
+
+<div id="map" class:should-show={!loading && !error}></div>
+
+<style>
+    /* i hate this translate thing but its the only thing that works decently */
+
+    #map {
+        aspect-ratio: 16/9;
+        transform: translateX(-100vw);
+    }
+
+    #map.should-show {
+        transform: translateX(0);
+    }
+</style>
