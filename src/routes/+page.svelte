@@ -85,7 +85,7 @@
 {#if loading}
     <div style="display: flex; align-items: center" transition:slide>
         <Loader></Loader>
-        <p>Tracing route, this might take a few seconds</p>
+        <p>Tracing route, this might take some time...</p>
     </div>
 {/if}
 
@@ -99,11 +99,13 @@
     /* i hate this translate thing but its the only thing that works decently */
 
     #map {
-        aspect-ratio: 16/9;
-        transform: translateX(-100vw);
+        aspect-ratio: 16 / 9;
+        opacity: 0; transition: opacity 0.2s ease-in-out;
+        /* transform: translateX(-100vw); */
     }
 
     #map.should-show {
-        transform: translateX(0);
+        opacity: 1;
+        /* transform: translateX(0); */
     }
 </style>

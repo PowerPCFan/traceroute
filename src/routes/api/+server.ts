@@ -1,14 +1,13 @@
-import { execFile } from 'node:child_process';
+import { execFile } from "node:child_process";
 import net from "node:net"
-import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from '$lib/api-types';
-import { error } from '@sveltejs/kit';
+import type { AirportCSV, AirportMap, CityMap, CSVCities, ProbeResult } from "$lib/api-types";
+import { error } from "@sveltejs/kit";
 import airports from "$lib/airports.json";
 import worldCities from "$lib/cities/worldcities.json";
 import Database from "better-sqlite3";
 
-const isDev = process.env.NODE_ENV === 'development';
-
-const tryAirportAndCityMatchBeforeIpLookup: boolean = (process.env.AIRPORT_CITY_FIRST?.toLowerCase() === 'true') || true;
+const isDev = process.env.NODE_ENV === "development";
+const tryAirportAndCityMatchBeforeIpLookup = process.env.AIRPORT_CITY_FIRST === undefined ? true : process.env.AIRPORT_CITY_FIRST.toLowerCase() === "true";
 
 const KNOWN_REPLACEMENTS = new Map(Object.entries({
     "hls": "hel",
@@ -44,17 +43,105 @@ const TEST_TRACEROUTE = `traceroute to 104.248.99.119 (104.248.99.119), 25 hops 
 22  203.208.151.50 (203.208.151.50)  366.254 ms
 23  203.208.149.2 (203.208.149.2)  366.556 ms
 24  203.208.186.174 (203.208.186.174)  366.542 ms
-25  *`
+25  *`;
 
-const database = new Database('ips.db');
+const database = new Database("ips.db");
 
-// @ts-expect-error TS2740
-const rawCityData: CSVCities[] = worldCities;
+const rawCityData: CSVCities[] = worldCities as CSVCities[];
 const cityData: CityMap = Object.fromEntries(rawCityData.map(city => [city.city_ascii.toLowerCase(), {...city}]));
 
-// @ts-ignore
 const rawAirportData: AirportCSV[] = airports
 const airportData: AirportMap = Object.fromEntries(rawAirportData.map(airport => [airport.code.toLowerCase(), {...airport}]));
+
+function isPrivateIP(ip: string): boolean {
+    const parts = ip.split('.').map(Number);
+    if (parts.length !== 4 || parts.some(part => isNaN(part) || part < 0 || part > 255)) {
+        return false;
+    }
+
+    // 10.0.0.0/8
+    if (parts[0] === 10) return true;
+    // 172.16.0.0/12
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 192.168.0.0/16
+    if (parts[0] === 192 && parts[1] === 168) return true;
+    // 127.0.0.0/8 (loopback)
+    if (parts[0] === 127) return true;
+    // 169.254.0.0/16 (link-local)
+    if (parts[0] === 169 && parts[1] === 254) return true;
+
+    return false;
+}
+
+async function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function getGeolocation(ip: string, maxRetries = 3): Promise<[number, number] | [null, null]> {
+    // helper for valid coord check
+    function valid(val: any): boolean {
+        // return false if val is falsy except for 0, true otherwise
+        return !!val || val === 0;
+    }
+
+    // helper for avoiding rate limits in api calls
+    async function tryWithRetry(url: string, retries = 0): Promise<[number, number] | [null, null]> {
+        try {
+            const result = await fetch(url);
+
+            if (result.status === 429) {
+                if (retries >= maxRetries) {
+                    console.log(`Rate limited after ${maxRetries} retries for ${url}`);
+                    return [null, null];
+                }
+
+                const retryAfter = result.headers.get('Retry-After');
+                const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000; // 5 seconds default
+
+                console.log(`Rate limited, waiting ${waitTime}ms before retry ${retries + 1}/${maxRetries}`);
+                await sleep(waitTime);
+                return tryWithRetry(url, retries + 1);
+            }
+
+            if (!result.ok) {
+                console.log(`HTTP error ${result.status} for ${url}`);
+                return [null, null];
+            }
+
+            const text = await result.text();
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (parseError) {
+                console.log(`JSON parse error for ${url}: ${text.substring(0, 100)}...`);
+                return [null, null];
+            }
+
+            return json;
+        } catch (error) {
+            console.log(`Fetch error for ${url}:`, error);
+            return [null, null];
+        }
+    }
+
+    const ipApiResult = await tryWithRetry(`http://ip-api.com/json/${ip}?fields=status,message,lat,lon`);
+    if (ipApiResult && ipApiResult !== null && typeof ipApiResult === 'object' && 'lat' in ipApiResult && 'lon' in ipApiResult) {
+        const rawLatLon = [ipApiResult.lat, ipApiResult.lon];
+        if (valid(rawLatLon[0]) && valid(rawLatLon[1])) {
+            return rawLatLon.map(val => Number(val)) as [number, number];
+        }
+    }
+
+    const ipapiResult = await tryWithRetry(`https://ipapi.co/${ip}/json/`);
+    if (ipapiResult && ipapiResult !== null && typeof ipapiResult === 'object' && 'latitude' in ipapiResult && 'longitude' in ipapiResult) {
+        const rawLatLon = [ipapiResult.latitude, ipapiResult.longitude];
+        if (valid(rawLatLon[0]) && valid(rawLatLon[1])) {
+            return rawLatLon.map(val => Number(val)) as [number, number];
+        }
+    }
+
+    return [null, null];
+}
 
 async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
     console.log(lines);
@@ -74,7 +161,7 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
         const domain = parts[1];
         const ip = parts[2].replace("(", "").replace(")", "");
         const delay = parts[3];
-        
+
         let result: ProbeResult = {
             index: Number(index),
             delay: Number(delay),
@@ -84,9 +171,9 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
         }
 
         if (!tryAirportAndCityMatchBeforeIpLookup) {
-            // use ip-api geolocation
             const geolocation = await getLocationFromIp(ip);
-            if (geolocation[0]) {
+
+            if (geolocation[0] !== null && geolocation[1] !== null) {
                 result.domainAnalysis = {
                     cityOrAirport: "unknown",
                     coordinates: geolocation,
@@ -121,13 +208,12 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
 
                         const data = airportData[match.toLocaleLowerCase()];
                         if (!data || !data.url || !data.icao || Number(cityData[data.city.toLocaleLowerCase().trim()]?.population ?? 0) < 25000) {
-                            console.log("Skipping airport because URL isnt there");
+                            console.log("Skipping airport because URL isn't there");
                         } else {
-                            console.log("Which was succesfull");
+                            console.log("Match was successful!");
                             console.log(cityData[match.toLowerCase().trim()]);
                             result.domainAnalysis = {
                                 cityOrAirport: match.toUpperCase(),
-                                // @ts-ignore
                                 coordinates: [Number(data.latitude), Number(data.longitude)]
                             }
                             break;
@@ -139,7 +225,7 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
             if (!result.domainAnalysis) {
                 // use ip-api geolocation
                 const geolocation = await getLocationFromIp(ip);
-                if (geolocation[0]) {
+                if (geolocation[0] !== null && geolocation[1] !== null) {
                     result.domainAnalysis = {
                         cityOrAirport: "unknown",
                         coordinates: geolocation,
@@ -156,32 +242,46 @@ async function parseOutput(lines: string[]): Promise<ProbeResult[]> {
     return results.slice(1);
 } 
 
-async function getLocationFromIp(ip: string): Promise<[number, number]> {
+async function getLocationFromIp(ip: string): Promise<[number, number] | [null, null]> {
     database.exec(`
         CREATE TABLE IF NOT EXISTS ips (
-            ip  TEXT primary key,
-            lat REAL NOT     NULL,
-            lng REAL NOT     NULL
+            ip          TEXT     PRIMARY KEY,
+            lat         REAL,
+            lng         REAL,
+            is_private  INTEGER  DEFAULT 0
         )
     `)
 
     // @ts-expect-error
-    const result: {lat: number, lng: number} | undefined = database.prepare("SELECT * FROM ips WHERE ip=?").get(ip);
+    const result: {lat: number | null, lng: number | null, is_private: number} | undefined = database.prepare("SELECT * FROM ips WHERE ip=?").get(ip);
 
-    if (result) {
-        console.log(`Found ip ${ip} in database`);
-        return [result.lat, result.lng]
-    } else {
-        console.log(`Getting geolocation for ip ${ip}`);
-        const result = await fetch(`http://ip-api.com/json/${ip}?fields=status,message,lat,lon`);
-        const json = await result.json();
-
-        const [lat, lng] = [Number(json["lat"]), Number(json["lon"])];
-        if (lat && lng) {
-            database.prepare("INSERT INTO ips (ip, lat, lng) VALUES (?, ?, ?)").run(ip, lat, lng);
+    if (result !== undefined) {
+        if (result.is_private) {
+            console.log(`Found cached private IP: ${ip}`);
+            return [null, null];
         }
-        
-        return [lat, lng];
+
+        console.log(`Found IP ${ip} in database`);
+        if (result.lat !== null && result.lng !== null) {
+            return [result.lat, result.lng];
+        } else {
+            return [null, null];
+        }
+    } else {
+        console.log(`Processing IP '${ip}'`);
+
+        if (isPrivateIP(ip)) {
+            console.log(`Caching private IP: ${ip}`);
+            database.prepare("INSERT INTO ips (ip, lat, lng, is_private) VALUES (?, ?, ?, ?)").run(ip, null, null, 1);
+            return [null, null];
+        }
+
+        console.log(`Getting geolocation for IP '${ip}'`);
+        const coords = await getGeolocation(ip);
+
+        database.prepare("INSERT INTO ips (ip, lat, lng, is_private) VALUES (?, ?, ?, ?)").run(ip, coords[0], coords[1], 0);
+
+        return coords;
     }
 }
 
@@ -197,16 +297,16 @@ export async function GET({ request }) {
         });
     }
 
-    const ip = request.headers.get("cf-connecting-ip");
+    const ip = request.headers.get("CF-Connecting-IP") || "127.0.0.1";
 
-    if (!net.isIP(ip!)) {
+    if (!net.isIP(ip)) {
         console.log("Invalid IP! Headers: ");
         console.log(request.headers);
         return error(422);
     }
 
     return new Promise(async (resolve) => {
-        execFile("traceroute", ["-w", "0.5", "-q", "1", "-m", "25", (ip ?? '127.0.0.1')], async (err, stdout, _stderr) => {
+        execFile("traceroute", ["-w", "0.5", "-q", "1", "-m", "25", ip], async (err, stdout, _stderr) => {
             if (err) {
                 resolve(new Response(
                     JSON.stringify({ error: err.message }), {
